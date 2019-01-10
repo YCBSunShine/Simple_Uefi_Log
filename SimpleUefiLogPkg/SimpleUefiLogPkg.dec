@@ -1,0 +1,11 @@
+[Defines]
+  DEC_SPECIFICATION              = 0x00010005
+  PACKAGE_NAME                   = SimpleUefiLogPkg
+  PACKAGE_GUID                   = 70D36FD5-8B51-4F97-ABB4-3E947B8A7133
+  PACKAGE_VERSION                = 1.08
+
+ [Includes]
+  include
+
+ [LibraryClasses]
+  SimpleUefiLog | include/Library/SimpleUefiLog.h

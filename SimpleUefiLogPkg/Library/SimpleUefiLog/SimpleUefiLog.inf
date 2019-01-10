@@ -1,0 +1,29 @@
+[Defines]
+ INF_VERSION					= 0x00010005
+ BASE_NAME						= SimpleUefiLog
+ FILE_GUID						= 976C4E5D-7C56-46C0-8893-0F17A7F22CD7
+ VERSION_STRING					= 1.0
+ MODULE_TYPE 					= BASE
+ LIBRARY_CLASS					= SimpleUefiLog
+
+ [Sources]
+  SimpleUefiLog.c
+
+ [Packages]
+  MdePkg/MdePkg.dec
+
+ [LibraryClasses]
+ UefiLib
+ BaseLib
+ PrintLib
+ UefiBootServicesTableLib
+ UefiRuntimeServicesTableLib
+ MemoryAllocationLib
+
+ [Protocols]
+ gEfiSimpleFileSystemProtocolGuid
+ gEfiDevicePathToTextProtocolGuid
+ gEfiLoadedImageProtocolGuid
+
+ [Guids]
+ gEfiFileInfoGuid

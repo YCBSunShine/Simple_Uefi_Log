@@ -1,5 +1,14 @@
 # Simple_Uefi_Log
 
+##### version: 2.0.0
+
+将SimpleUefiLogPkg放入edk2的根目录下，
+使用#include <Library/SimpleUefiLog.h> 
+在程序的inf文件[LibraryClasses]中增加SimpleUefiLog
+
+新增：
+	1、LOG_HEX() 查看内存
+
 ##### version：1.0.0
 UefiLog是在UEFI环境下轻量级日志系统
 ### 1.
