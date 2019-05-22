@@ -7,9 +7,6 @@
 #include <Library/UefiRuntimeServicesTableLib.h>
 #include <Library/MemoryAllocationLib.h>
 
-#include <Protocol/LoadedImage.h>
-#include <Protocol/DevicePathToText.h>
-
 #include <Guid/FileInfo.h>
 
 #define MAX_MSG_SIZE  0x200
