@@ -4,21 +4,21 @@
 #include <Library/UefiLib.h>
 #include <Protocol/SimpleFileSystem.h>
 
-#define LOG_DEBUG(Format, ...) Log(DEBUG, __FILE__, __func__, __LINE__, Format, ##__VA_ARGS__)
-#define LOG_TRACE(Format, ...) Log(TRACE, __FILE__, __func__, __LINE__, Format, ##__VA_ARGS__)
-#define LOG_INFO(Format, ...) Log(INFO, __FILE__, __func__, __LINE__, Format, ##__VA_ARGS__)
-#define LOG_WRAN(Format, ...) Log(WRAN, __FILE__, __func__, __LINE__, Format, ##__VA_ARGS__)
-#define LOG_ERROR(Format, ...) Log(ERROR, __FILE__, __func__, __LINE__, Format, ##__VA_ARGS__)
-#define LOG_HEX(Data, DataSize, Format, ...) LogHex(Data, DataSize, HEX, __FILE__, __func__, __LINE__, Format, ##__VA_ARGS__);
+#define LOG_DEBUG(Format, ...) Log(_DEBUG, __FILE__, __func__, __LINE__, Format, ##__VA_ARGS__)
+#define LOG_TRACE(Format, ...) Log(_TRACE, __FILE__, __func__, __LINE__, Format, ##__VA_ARGS__)
+#define LOG_INFO(Format, ...) Log(_INFO, __FILE__, __func__, __LINE__, Format, ##__VA_ARGS__)
+#define LOG_WRAN(Format, ...) Log(_WRAN, __FILE__, __func__, __LINE__, Format, ##__VA_ARGS__)
+#define LOG_ERROR(Format, ...) Log(_ERROR, __FILE__, __func__, __LINE__, Format, ##__VA_ARGS__)
+#define LOG_HEX(Data, DataSize, Format, ...) LogHex(Data, DataSize, _HEX, __FILE__, __func__, __LINE__, Format, ##__VA_ARGS__);
 
 typedef enum _LOG_LEVEL
 {
-    DEBUG = 1,
-    TRACE,
-    INFO,
-    WRAN,
-    ERROR,
-	HEX
+    _DEBUG = 1,
+    _TRACE,
+    _INFO,
+    _WRAN,
+    _ERROR,
+	_HEX
 }LOG_LEVEL;
 
 
@@ -70,9 +70,9 @@ EFIAPI
 Log(
 	IN LOG_LEVEL level,
 	IN CHAR8 *FileName,
-	IN CHAR8 *FuncName,
+	IN CONST CHAR8 *FuncName,
 	IN UINTN LineNum,
-	IN CHAR16 *Format,
+	IN CONST CHAR16 *Format,
     ...
 );
 
@@ -83,8 +83,8 @@ LogHex(
 	IN UINT64 size,
 	IN LOG_LEVEL level,
 	IN CHAR8 *FileName,
-	IN CHAR8 *FuncName,
+	IN CONST CHAR8 *FuncName,
 	IN UINTN LineNum,
-	IN CHAR16 *Format,
+	IN CONST CHAR16 *Format,
 	...
 );

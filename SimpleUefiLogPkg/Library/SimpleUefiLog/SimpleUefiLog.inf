@@ -22,8 +22,6 @@
 
  [Protocols]
  gEfiSimpleFileSystemProtocolGuid
- gEfiDevicePathToTextProtocolGuid
- gEfiLoadedImageProtocolGuid
 
  [Guids]
  gEfiFileInfoGuid

@@ -15,6 +15,8 @@
 #define MAX_MSG_SIZE  0x200
 
 EFI_FILE_PROTOCOL *gFileHandle = NULL;
+EFI_FILE_PROTOCOL *Root = 0;
+
 STATIC BOOLEAN ShowLevel = TRUE;
 STATIC BOOLEAN ShowLine = TRUE;
 STATIC BOOLEAN ShowFuncName = TRUE;
@@ -73,17 +75,17 @@ GetLevelString(
 {
 	switch (Level)
 	{
-	case DEBUG:
+	case _DEBUG:
 		return L"[ DEBUG ]";
-	case TRACE:
+	case _TRACE:
 		return L"[ TRACE ]";
-	case INFO:
+	case _INFO:
 		return L"[ INFO ]";
-	case WRAN:
+	case _WRAN:
 		return L"[ WARN ]";
-	case ERROR:
+	case _ERROR:
 		return L"[ ERROR ]";
-	case HEX:
+	case _HEX:
 		return L"[ HEX ]";
 	default:
 		return L"[       ]";
@@ -122,100 +124,6 @@ GetEfiTime(
 	return TimeStr;
 }
 
-CHAR16 *
-GetStrReplace(
-	IN CHAR16 *Str,
-	IN CHAR16 *OldStr,
-	IN CHAR16 *NewStr
-)
-{
-	UINTN LenStr;
-	UINTN OldStrLen;
-	UINTN Index = 0;
-	CHAR16 *BStr = NULL;
-
-	LenStr = StrLen(Str);
-	OldStrLen = StrLen(OldStr);
-
-	BStr = AllocatePool(LenStr);
-	gBS->SetMem(
-		BStr, 
-		LenStr,
-		0
-	);
-
-	for (Index = 0; Index < LenStr; Index++)
-	{
-		if (!StrnCmp(
-			Str + Index, 
-			OldStr, 
-			OldStrLen
-		))
-		{
-			StrCat(
-				BStr, 
-				NewStr
-			);
-			Index += OldStrLen - 1;
-		}
-		else
-		{
-			StrnCat(
-				BStr, 
-				Str + Index, 
-				1
-			);
-		}
-	}
-
-	StrCpy(
-		Str, 
-		BStr
-	);
-
-	return Str;
-}
-
-EFI_STATUS
-GetCurrentPath(
-	OUT CHAR16 **Path
-)
-{
-	EFI_STATUS Status;
-	EFI_LOADED_IMAGE_PROTOCOL *LoadedImageProtocol;
-	EFI_DEVICE_PATH_TO_TEXT_PROTOCOL *DevicePathToTextProtocol;
-	
-	Status = gBS->LocateProtocol(
-		&gEfiDevicePathToTextProtocolGuid, 
-		NULL, 
-		(VOID **)&DevicePathToTextProtocol
-	);
-	if (EFI_ERROR(Status))
-	{
-		Print(L"Get DevicePathToTextProtocol Error: %r\n", Status);
-		return Status;
-	}
-
-	Status = gBS->HandleProtocol(
-		gImageHandle, 
-		&gEfiLoadedImageProtocolGuid, 
-		(VOID **)&LoadedImageProtocol
-	);
-	if (EFI_ERROR(Status))
-	{
-		Print(L"Get LoadedImageProtocol Error: %r\n", Status);
-		return Status;
-	}
-
-	*Path = DevicePathToTextProtocol->ConvertDevicePathToText(
-		LoadedImageProtocol->FilePath,
-		TRUE,
-		TRUE
-	);
-
-	return EFI_SUCCESS;
-}
-
 EFI_STATUS
 OpenLogFile(
 	OUT EFI_FILE_PROTOCOL **FileHandle,
@@ -224,7 +132,6 @@ OpenLogFile(
 {
 	EFI_STATUS Status;
 	EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *SimpleFileSystemProtocol;
-	EFI_FILE_PROTOCOL *Root = 0;
 
 	Status = gBS->LocateProtocol(
 		&gEfiSimpleFileSystemProtocolGuid,
@@ -278,13 +185,7 @@ LogInit(
 	EFI_STATUS Status;
 	if (Path == NULL)
 	{
-		Status = GetCurrentPath(&Path);
-		Path = GetStrReplace(Path, L".efi", L".log");
-		if (EFI_ERROR(Status))
-		{
-			Print(L"GetCurrentPathError: %r\n", Status);
-			return Status;
-		}
+        return EFI_UNSUPPORTED;
 	}
 
 	Status = OpenLogFile(
@@ -320,8 +221,9 @@ WriteData(
 	}
 
 	EFI_STATUS Status;
-	UINTN InfoBufferSize;
+	UINTN InfoBufferSize = 0;
 	EFI_FILE_INFO *FileInfo = NULL;
+    BOOLEAN FileInfoBufferTooSmall = FALSE;
 
 	Status = gFileHandle->GetInfo(
 		gFileHandle,
@@ -333,6 +235,7 @@ WriteData(
 	if (Status == EFI_BUFFER_TOO_SMALL)
 	{
 		FileInfo = AllocatePool(InfoBufferSize);
+        FileInfoBufferTooSmall = TRUE;
 		Status = gFileHandle->GetInfo(
 			gFileHandle,
 			&gEfiFileInfoGuid,
@@ -344,6 +247,9 @@ WriteData(
 	if (EFI_ERROR(Status))
 	{
 		Print(L"Get File Info Failed: %r\n", Status);
+        if (FileInfoBufferTooSmall) {
+            FreePool(FileInfo);
+        }
 		return Status;
 	}
 
@@ -355,6 +261,7 @@ WriteData(
 	if (EFI_ERROR(Status))
 	{
 		Print(L"Set Position Failed: %r\n", Status);
+        goto _FreeFileInfoBuffer;
 		return Status;
 	}
 
@@ -366,6 +273,7 @@ WriteData(
 	if (EFI_ERROR(Status))
 	{
 		Print(L"Write File Failed: %r\n", Status);
+        goto _FreeFileInfoBuffer;
 		return Status;
 	}
 
@@ -374,9 +282,18 @@ WriteData(
 	if (EFI_ERROR(Status))
 	{
 		Print(L"Flush Data Failed: %r\n", Status);
-		return Status;
+        goto _FreeFileInfoBuffer;
+        return Status;
 	}
+    
+    goto _FreeFileInfoBuffer;
+    
+_FreeFileInfoBuffer:
+    if(FileInfoBufferTooSmall) FreePool(FileInfo);
+    
 	return Status;
+    
+
 }
 
 VOID
@@ -387,6 +304,7 @@ LogClose(
 {
 	gFileHandle->Flush(gFileHandle);
 	gFileHandle->Close(gFileHandle);
+    Root->Close(Root);
 }
 
 CHAR16 *
@@ -398,10 +316,15 @@ SetInfo(
 )
 {
 	CHAR16 *Header = NULL;
+    CHAR16 *str_1 = NULL;
+    CHAR16 *str_2 = NULL;
+    CHAR16 *str_3 = NULL;
+    CHAR16 *str_4 = NULL;
+    CHAR16 *str_5 = NULL;
 	if (ShowLevel)
 	{
-		Header = CatSPrint(
-			Header,
+		str_1 = CatSPrint(
+			NULL,
 			L"%s ",
 			GetLevelString(level)
 		);
@@ -409,8 +332,8 @@ SetInfo(
 
 	if (ShowTime)
 	{
-		Header = CatSPrint(
-			Header,
+		str_2 = CatSPrint(
+			NULL,
 			L"%s ",
 			GetEfiTime()
 		);
@@ -418,8 +341,8 @@ SetInfo(
 
 	if (ShowFileName)
 	{
-		Header = CatSPrint(
-			Header,
+		str_3 = CatSPrint(
+			NULL,
 			L"%a ",
 			FileName
 		);
@@ -427,8 +350,8 @@ SetInfo(
 
 	if (ShowFuncName)
 	{
-		Header = CatSPrint(
-			Header,
+		str_4 = CatSPrint(
+			NULL,
 			L"%a ",
 			FuncName
 		);
@@ -436,18 +359,20 @@ SetInfo(
 
 	if (ShowLine)
 	{
-		Header = CatSPrint(
-			Header,
+		str_5 = CatSPrint(
+			NULL,
 			L"%d ",
 			LineNum
 		);
 	}
 
-	if (Header == NULL)
-	{
-		Header = L"";
-	}
-
+    Header = CatSPrint(NULL, L"%s %s %s %s %s", str_1, str_2, str_3, str_4, str_5);
+    
+    FreePool(str_1);
+    FreePool(str_2);
+    FreePool(str_3);
+    FreePool(str_4);
+    FreePool(str_5);
 	return Header;
 }
 
@@ -456,9 +381,9 @@ EFIAPI
 Log(
 	IN LOG_LEVEL level,
 	IN CHAR8 *FileName,
-	IN CHAR8 *FuncName,
+	IN CONST CHAR8 *FuncName,
 	IN UINTN LineNum,
-	IN CHAR16 *Format,
+	IN CONST CHAR16 *Format,
 	...
 )
 {
@@ -490,6 +415,8 @@ Log(
 
 	Print(L"%s", Data);
 	WriteData((VOID *)Data, StrLen(Data) * 2);
+    FreePool(Data);
+    FreePool(Header);
 }
 
 VOID
@@ -499,9 +426,9 @@ LogHex(
 	IN UINT64 size,
 	IN LOG_LEVEL level,
 	IN CHAR8 *FileName,
-	IN CHAR8 *FuncName,
+	IN CONST CHAR8 *FuncName,
 	IN UINTN LineNum,
-	IN CHAR16 *Format,
+	IN CONST CHAR16 *Format,
 	...
 )
 {
@@ -545,7 +472,7 @@ LogHex(
 
 	Data = CatSPrint(
 		Data,
-		L"%s%s\n%s",
+		L"%s%s\n%s\n",
 		Header,
 		Buffer,
 		HexStr
